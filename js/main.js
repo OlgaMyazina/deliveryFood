@@ -47,23 +47,26 @@ const authorized = () => {
   buttonOut.addEventListener('click', logOut);
 };
 
-const noAuthrized = () => {
+const notAuthorized = () => {
   console.log('не авторизован');
 
-  function logIn(event) {
+  const logIn = (event) => {
     event.preventDefault();
-    if (loginInput.value.trim()) {
+    const userName = loginInput.value.trim();
+    if (userName) {
+      loginInput.style.borderColor = "";
+      localStorage.setItem('gloDelivery', userName);
+      login = userName;
       toggleModalAuth();
       buttonAuth.removeEventListener('click', toggleModalAuth);
       closeAuth.removeEventListener('click', toggleModalAuth);
       logInForm.removeEventListener('submit', logIn);
       logInForm.reset();
-      localStorage.setItem('gloDelivery', login);
       checkAuth();
     } else {
       loginInput.style.borderColor = "red";
     }
-  }
+  };
 
   buttonAuth.addEventListener('click', toggleModalAuth);
   closeAuth.addEventListener('click', toggleModalAuth);
@@ -74,7 +77,7 @@ const checkAuth = () => {
   if (login) {
     authorized()
   } else {
-    noAuthrized()
+    notAuthorized()
   }
 };
 
@@ -130,6 +133,11 @@ const createCardGood = () => {
 
 
 const openGoods = (event) => {
+  console.log(login);
+  if (!login) {
+    toggleModalAuth();
+    return;
+  }
   const target = event.target;
   const restaurant = target.closest('.card-restaurant');
 
