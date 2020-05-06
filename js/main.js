@@ -1,23 +1,29 @@
 'use strict';
 
-const cartButton = document.querySelector('#cart-button');
-const modal = document.querySelector('.modal');
-const close = document.querySelector('.close');
-const buttonAuth = document.querySelector('.button-auth');
-const modalAuth = document.querySelector('.modal-auth');
-const closeAuth = document.querySelector('.close-auth');
-const logInForm = document.querySelector('#logInForm');
-const loginInput = document.querySelector('#login');
-const userName = document.querySelector('.user-name');
-const buttonOut = document.querySelector('.button-out');
-const cardsRestaurants = document.querySelector('.cards-restaurants');
-const containerPromo = document.querySelector('.container-promo');
-const restaurants = document.querySelector('.restaurants');
-const menu = document.querySelector('.menu');
-const logo = document.querySelector('.logo');
-const cardsMenu = document.querySelector('.cards-menu');
+const cartButton = document.querySelector('#cart-button'),
+  modal = document.querySelector('.modal'),
+  close = document.querySelector('.close'),
+  buttonAuth = document.querySelector('.button-auth'),
+  modalAuth = document.querySelector('.modal-auth'),
+  closeAuth = document.querySelector('.close-auth'),
+  logInForm = document.querySelector('#logInForm'),
+  loginInput = document.querySelector('#login'),
+  userName = document.querySelector('.user-name'),
+  buttonOut = document.querySelector('.button-out'),
+  cardsRestaurants = document.querySelector('.cards-restaurants'),
+  containerPromo = document.querySelector('.container-promo'),
+  restaurants = document.querySelector('.restaurants'),
+  menu = document.querySelector('.menu'),
+  logo = document.querySelector('.logo'),
+  cardsMenu = document.querySelector('.cards-menu');
 
 let login = localStorage.getItem('gloDelivery');
+
+//функиця валидации login
+const valid = function (str) {
+  const nameReg = /^[a-zA-Z][a-zA-Z0-9-_\.]{1,20}$/;
+  return nameReg.test(str);
+};
 
 function toggleModal() {
   modal.classList.toggle('is-open');
@@ -67,7 +73,9 @@ const notAuthorized = () => {
     event.preventDefault();
     //получаем значение логина без пробелов с начала и конца
     const userName = loginInput.value.trim();
-    if (userName) {
+
+    if (userName && valid(loginInput.value)) {
+
       //возвращаем значение по-умолчанию
       loginInput.style.borderColor = "";
       //добавляем значение логина в локальное хранилище и обновляем глобальную перременную логина
@@ -87,6 +95,7 @@ const notAuthorized = () => {
       loginInput.style.borderColor = "red";
       loginInput.placeholder = "Введите логин";
     }
+
   };
   //обрабочики на кнопки "😊 Войти" (действие описано выше), "Войти", х,
   buttonAuth.addEventListener('click', toggleModalAuth);
@@ -114,10 +123,7 @@ const cardRestaurantJSTemplate = () => {
       {
         tag: 'img',
         cls: 'card-image',
-        attrs: {
-          alt: 'image',
-          src: 'img/pizza-burger/preview.jpg',
-        }
+        attrs: {alt: 'image', src: 'img/pizza-burger/preview.jpg'}
       },
       {
         tag: 'div',
@@ -127,37 +133,17 @@ const cardRestaurantJSTemplate = () => {
             tag: 'div',
             cls: 'card-heading',
             content: [
-              {
-                tag: 'h3',
-                cls: 'card-title',
-                content: 'PizzaBurger',
-              },
-              {
-                tag: 'span',
-                cls: ['card-tag', 'tag'],
-                content: '45 мин',
-              }
+              {tag: 'h3', cls: 'card-title', content: 'PizzaBurger'},
+              {tag: 'span', cls: ['card-tag', 'tag'], content: '45 мин'}
             ],
           },
           {
             tag: 'div',
             cls: 'card-info',
             content: [
-              {
-                tag: 'div',
-                cls: 'rating',
-                content: '4.5',
-              },
-              {
-                tag: 'div',
-                cls: 'price',
-                content: 'От 700 ₽',
-              },
-              {
-                tag: 'div',
-                cls: 'category',
-                content: 'Пицца',
-              },
+              {tag: 'div', cls: 'rating', content: '4.5'},
+              {tag: 'div', cls: 'price', content: 'От 700 ₽'},
+              {tag: 'div', cls: 'category', content: 'Пицца'},
             ],
           }
         ]
@@ -366,6 +352,7 @@ const openGoods = (event) => {
   const restaurant = event.target.closest('.card-restaurant');
   //изменяем внешнее оформление для отображения карточек товаров
   if (restaurant) {
+
     containerPromo.classList.add('hide');
     restaurants.classList.add('hide');
     menu.classList.remove('hide');
@@ -402,3 +389,15 @@ checkAuth();
 createCardRestaurant();
 //cоздаём карточку ресторана с помощью шаблонной строки HTML
 createCardRestaurantHTML();
+
+//Используем библиотеку Swiper
+new Swiper('.swiper-container', {
+  //чтобы был бесконечный
+  loop: true,
+  //автоматическое проигрывание
+  autoplay: {
+    delay: 3000,
+  },
+  slidePerView: 1,
+  sliderPerColumn: 1,
+});
