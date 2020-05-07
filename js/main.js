@@ -6,8 +6,8 @@ const cartButton = document.querySelector('#cart-button'),
   buttonAuth = document.querySelector('.button-auth'),
   modalAuth = document.querySelector('.modal-auth'),
   closeAuth = document.querySelector('.close-auth'),
-  logInForm = document.querySelector('#logInForm'),
-  loginInput = document.querySelector('#login'),
+  logInForm = document.getElementById('logInForm'),
+  loginInput = document.getElementById('login'),
   userName = document.querySelector('.user-name'),
   buttonOut = document.querySelector('.button-out'),
   cardsRestaurants = document.querySelector('.cards-restaurants'),
@@ -15,7 +15,13 @@ const cartButton = document.querySelector('#cart-button'),
   restaurants = document.querySelector('.restaurants'),
   menu = document.querySelector('.menu'),
   logo = document.querySelector('.logo'),
-  cardsMenu = document.querySelector('.cards-menu');
+  cardsMenu = document.querySelector('.cards-menu'),
+  inputSearch = document.querySelector('.input-search'),
+  restaurantTitle = document.querySelector('.restaurant-title'),
+  restaurantRating = document.querySelector('.section-heading .rating'),
+  restaurantPrice = document.querySelector('.section-heading .price'),
+  restaurantKitchen = document.querySelector('.section-heading .category');
+
 
 let login = localStorage.getItem('gloDelivery');
 
@@ -38,20 +44,16 @@ const getData = async (url) => {
 
 //функиця валидации login
 const valid = function (str) {
-  const nameReg = /^[a-zA-Z][a-zA-Z0-9-_\.]{1,20}$/;
+  const nameReg = /^[a-zA-Zа-яА-Я][a-zA-Zа-яА-Я0-9-_.][а-яА-Я]{1,20}$/;
   return nameReg.test(str);
 };
 
-function toggleModal() {
-  modal.classList.toggle('is-open');
-}
-
 /**
- * метод открывает-закрывает окно авторизации
+ * метод открывает-закрывает модальное окно (передаём элемент-модальное окно, у которого меняем свойства видимости)
  */
-const toggleModalAuth = () => {
-  loginInput.style.borderColor = "";
-  modalAuth.classList.toggle('is-open');
+
+const toggleModal = (htmlElement) => {
+  htmlElement.classList.toggle('is-open');
 };
 
 /**
@@ -97,10 +99,10 @@ const notAuthorized = () => {
       localStorage.setItem('gloDelivery', userName);
       login = userName;
       //закрываем форму
-      toggleModalAuth();
+      toggleModalAuth(modalAuth);
       //удаляем обработчики с закрытой формы
-      buttonAuth.removeEventListener('click', toggleModalAuth);
-      closeAuth.removeEventListener('click', toggleModalAuth);
+      buttonAuth.removeEventListener('click', toggleModal.bind(null, modalAuth));
+      closeAuth.removeEventListener('click', toggleModal.bind(null, modalAuth));
       logInForm.removeEventListener('submit', logIn);
       logInForm.reset();
       //вызываем проверку авторизации
@@ -113,8 +115,8 @@ const notAuthorized = () => {
 
   };
   //обрабочики на кнопки "😊 Войти" (действие описано выше), "Войти", х,
-  buttonAuth.addEventListener('click', toggleModalAuth);
-  closeAuth.addEventListener('click', toggleModalAuth);
+  buttonAuth.addEventListener('click', toggleModal.bind(null, modalAuth));
+  closeAuth.addEventListener('click', toggleModal.bind(null, modalAuth));
   logInForm.addEventListener('submit', logIn);
 };
 
@@ -135,13 +137,7 @@ const cardRestaurantJSTemplate = (restaurant) => {
     return {
       tag: 'a',
       cls: ['card', 'card-restaurant'],
-      attrs: {
-        "data-products": products,
-        "data-name": name,
-        "data-stars": stars,
-        "data-price": price,
-        "data-kitchen": kitchen,
-      },
+      attrs: {"data-products": products},
       content:
         [
           {
@@ -227,7 +223,10 @@ const browserJSEngine = (block) => {
  * */
 
 const createCardRestaurant = (restaurant) => {
-  cardsRestaurants.appendChild(browserJSEngine(cardRestaurantJSTemplate(restaurant)))
+  const card = browserJSEngine(cardRestaurantJSTemplate(restaurant));
+  card.products = restaurant.products;
+  card.info = [restaurant.name, restaurant.stars, restaurant.price, restaurant.kitchen];
+  cardsRestaurants.appendChild(card);
 };
 
 /**
@@ -245,12 +244,14 @@ const createCardRestaurant = (restaurant) => {
  */
 const createCardRestaurantHTML = (restaurant) => {
   const {name, image, kitchen, price, products, stars, time_of_delivery: timeOfDelivery} = restaurant;
-  const card = `
-    <a class="card card-restaurant" data-products="${products}" 
-    data-name = "${name}" 
-    data-stars = "${stars}" 
-    data-price="${price}" 
-    data-kitchen="${kitchen}">
+
+  const card = document.createElement('a');
+  card.classList.add('card');
+  card.classList.add('card-restaurant');
+  card.products = products;
+  card.info = [name, stars, price, kitchen];
+
+  card.insertAdjacentHTML('beforeend', `
 			<img src="${image}" alt="image" class="card-image"/>
 			<div class="card-text">
 				<div class="card-heading">
@@ -263,23 +264,17 @@ const createCardRestaurantHTML = (restaurant) => {
 				  <div class="category">${kitchen}</div>
 			  </div>
 		  </div>
-		</a>
-  `;
+  `);
 
-  cardsRestaurants.insertAdjacentHTML('beforeend', card);
+  cardsRestaurants.insertAdjacentElement('beforeend', card);
 };
 
 
-const createHeaderGoogs = (name, stars, price, kitchen) => {
-  const restaurantTitle = document.querySelector('.restaurant-title');
+const createHeaderGoods = (name, stars, price, kitchen) => {
   restaurantTitle.textContent = name;
-  const restaurantRating = document.querySelector('.section-heading .rating');
   restaurantRating.textContent = stars;
-  const restaurantPrice = document.querySelector('.section-heading .price');
   restaurantPrice.textContent = `От ${price} ₽`;
-  const restaurantKitchen = document.querySelector('.section-heading .category');
   restaurantKitchen.textContent = kitchen;
-
 };
 
 /**
@@ -295,9 +290,9 @@ const createHeaderGoogs = (name, stars, price, kitchen) => {
 const createCardGood = (good) => {
   const {description, id, image, name, price} = good;
   const card = document.createElement('div');
-  card.className = 'card';
-  card.innerHTML = `
-						<img src="${image}" alt="image" class="card-image" data-id="${id}"/>
+  card.classList.add('card');
+  card.insertAdjacentHTML('beforeend', `
+						<img src="${image}" alt="${name}" class="card-image" data-id="${id}"/>
 						<div class="card-text">
 							<div class="card-heading">
 								<h3 class="card-title card-title-reg">${name}</h3>
@@ -313,7 +308,7 @@ const createCardGood = (good) => {
 								<strong class="card-price-bold">${price} ₽</strong>
 							</div>
 						</div>
-`;
+`);
   cardsMenu.insertAdjacentElement('beforeend', card);
 };
 
@@ -333,7 +328,7 @@ const createCardGoodJS = (good) => {
 
   const image = document.createElement('img');
   image.className = 'card-image';
-  image.setAttribute('alt', 'image');
+  image.setAttribute('alt', good.name);
   image.setAttribute('src', good.image);
   card.appendChild(image);
 
@@ -388,25 +383,23 @@ const createCardGoodJS = (good) => {
 const openGoods = (event) => {
   //если логин не выбран, то показываем модальное окно с авторизацией
   if (!login) {
-    toggleModalAuth();
+    toggleModal(modalAuth);
     return;
   }
   const restaurant = event.target.closest('.card-restaurant');
   //изменяем внешнее оформление для отображения карточек товаров
   if (restaurant) {
+    createHeaderGoods(...restaurant.info);
 
-    containerPromo.classList.add('hide');
-    restaurants.classList.add('hide');
-    menu.classList.remove('hide');
-    cardsMenu.textContent = "";
+    //оформляем страницу каталога товаров
+    goToCatalog();
 
-    getData(`./db/${restaurant.dataset.products}`).then((data) => {
-      createHeaderGoogs(restaurant.dataset.name, restaurant.dataset.stars, restaurant.dataset.price, restaurant.dataset.kitchen);
+    getData(`./db/${restaurant.products}`).then((data) => {
       data.map(dataElem => {
         //создаём карточку товара с помощью HTML
-        createCardGood(dataElem);
+        //createCardGood(dataElem);
         //создаём карточку товара с помощью JS
-        //createCardGoodJS(dataElem, restaurant.dataset.restaurant);
+        createCardGoodJS(dataElem, restaurant.dataset.restaurant);
       })
     });
   }
@@ -422,15 +415,79 @@ const goToHome = () => {
   menu.classList.add('hide');
 };
 
+/**
+ * метод для изменения внешнего оформления каталога товаров при переходе из ресторана
+ */
+
+const goToCatalog = () => {
+  containerPromo.classList.add('hide');
+  restaurants.classList.add('hide');
+  menu.classList.remove('hide');
+  cardsMenu.textContent = "";
+};
+
+/**
+ * @param event - событие нажатия клавиши в поле поиска
+ *
+ */
+const handleSearch = (event) => {
+  //получаем клавишу enter
+  if (event.key !== 'Enter') {
+    return;
+  }
+  //получаем поисковую строку, обрабатываем пробелы и регистр
+  const value = event.target.value.toLowerCase().trim();
+
+  if (!value) {
+    event.target.style.borderColor = "tomato";
+    setTimeout(function () {
+      event.target.style.borderColor = "";
+      event.target.value = "";
+    }, 2000);
+    return;
+  }
+  const goods = [];
+  //получаем данные ресторанов
+  getData('./db/partners.json')
+    .then(data => {
+      //из каждого рестоана нужно получить ссылки на каталог товаров
+      const products = data.map(item => item.products);
+      //перебираем каждую ссылку на каталог и получаем непосрредственно сам список товаров
+      products.forEach(product => {
+        //получаем список товаров
+        getData(`./db/${product}`)
+          .then(data => {
+            //собираем все товары из всех ресторанов в один массив goods
+            goods.push(...data);
+
+            //оформляем страницу каталога товаров
+            goToCatalog();
+            createHeaderGoods("Результат поиска", "", "", "");
+
+            //результат поиска передаём дальше
+            return goods.filter(item =>
+              item.name.toLowerCase().includes(value));
+
+          })
+          //дата - это результат поиска, для каждого найденного - создаём элемент
+          .then(data =>
+            data.forEach(elem => createCardGood(elem))
+          )
+      })
+    });
+  event.target.value = "";
+};
 
 //обработчик клика на кнопку "Войти" или "Выйти"
-cartButton.addEventListener('click', toggleModal);
+cartButton.addEventListener('click', toggleModal.bind(null, modal));
 //обработчик клика на крестик в модальном окне авторизации
-close.addEventListener('click', toggleModal);
+close.addEventListener('click', toggleModal.bind(null, modal));
 //обработчик клика на карточку ресторана
 cardsRestaurants.addEventListener('click', openGoods);
 //обработчик клика на logo (возврат на страницу выбора ресторана)
 logo.addEventListener('click', goToHome);
+//обаботчик энтера в поиске
+inputSearch.addEventListener('keydown', handleSearch);
 
 //вызываем функцию проверки авторизации
 checkAuth();
