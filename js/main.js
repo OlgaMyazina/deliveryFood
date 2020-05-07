@@ -19,6 +19,23 @@ const cartButton = document.querySelector('#cart-button'),
 
 let login = localStorage.getItem('gloDelivery');
 
+/**
+ * @param url
+ * @returns {Promise<void>}
+ * Получаем данные json из папки db
+ */
+const getData = async (url) => {
+  //получаем данные
+  const response = await fetch(url);
+  //если статус 200 (без ошибки получения данных)
+  if (!response.ok) {
+    //создаём ошибку
+    throw new Error(`Ошибка по адрресу ${url}, статус ошибки ${response.status}!`);
+  }
+  return await response.json();
+};
+
+
 //функиця валидации login
 const valid = function (str) {
   const nameReg = /^[a-zA-Z][a-zA-Z0-9-_\.]{1,20}$/;
@@ -42,7 +59,6 @@ const toggleModalAuth = () => {
  */
 
 const authorized = () => {
-  console.log('авторизован');
 
   const logOut = () => {
     login = null;
@@ -66,7 +82,6 @@ const authorized = () => {
  * метод показывает модальное окно авторизации
  */
 const notAuthorized = () => {
-  console.log('не авторизован');
 
   const logIn = (event) => {
     //отменяем действие по-умолчанию для submit
@@ -115,42 +130,52 @@ const checkAuth = () => {
  * Объект-шаблон вёрстки карточки ресторана для browserJSEngine
  */
 
-const cardRestaurantJSTemplate = () => {
-  return {
-    tag: 'a',
-    cls: ['card', 'card-restaurant'],
-    content: [
-      {
-        tag: 'img',
-        cls: 'card-image',
-        attrs: {alt: 'image', src: 'img/pizza-burger/preview.jpg'}
+const cardRestaurantJSTemplate = (restaurant) => {
+    const {name, image, kitchen, price, products, stars, time_of_delivery: timeOfDelivery} = restaurant;
+    return {
+      tag: 'a',
+      cls: ['card', 'card-restaurant'],
+      attrs: {
+        "data-products": products,
+        "data-name": name,
+        "data-stars": stars,
+        "data-price": price,
+        "data-kitchen": kitchen,
       },
-      {
-        tag: 'div',
-        cls: 'card-text',
-        content: [
+      content:
+        [
           {
-            tag: 'div',
-            cls: 'card-heading',
-            content: [
-              {tag: 'h3', cls: 'card-title', content: 'PizzaBurger'},
-              {tag: 'span', cls: ['card-tag', 'tag'], content: '45 мин'}
-            ],
+            tag: 'img',
+            cls: 'card-image',
+            attrs: {alt: 'image', src: image}
           },
           {
             tag: 'div',
-            cls: 'card-info',
+            cls: 'card-text',
             content: [
-              {tag: 'div', cls: 'rating', content: '4.5'},
-              {tag: 'div', cls: 'price', content: 'От 700 ₽'},
-              {tag: 'div', cls: 'category', content: 'Пицца'},
-            ],
+              {
+                tag: 'div',
+                cls: 'card-heading',
+                content: [
+                  {tag: 'h3', cls: 'card-title', content: name},
+                  {tag: 'span', cls: ['card-tag', 'tag'], content: `${timeOfDelivery} мин`}
+                ],
+              },
+              {
+                tag: 'div',
+                cls: 'card-info',
+                content: [
+                  {tag: 'div', cls: 'rating', content: stars},
+                  {tag: 'div', cls: 'price', content: `От ${price} ₽`},
+                  {tag: 'div', cls: 'category', content: kitchen},
+                ],
+              }
+            ]
           }
         ]
-      }
-    ]
+    }
   }
-};
+;
 
 /**
  *
@@ -201,8 +226,8 @@ const browserJSEngine = (block) => {
  * с аргументом cardRestaurantJSTemplate - объект вёрстки
  * */
 
-const createCardRestaurant = () => {
-  cardsRestaurants.appendChild(browserJSEngine(cardRestaurantJSTemplate()))
+const createCardRestaurant = (restaurant) => {
+  cardsRestaurants.appendChild(browserJSEngine(cardRestaurantJSTemplate(restaurant)))
 };
 
 /**
@@ -218,25 +243,43 @@ const createCardRestaurant = () => {
  *   определяет позицию добавляемого элемента относительно элемента, вызвавшего метод
  * * второй аргумент - строка HTML
  */
-const createCardRestaurantHTML = () => {
+const createCardRestaurantHTML = (restaurant) => {
+  const {name, image, kitchen, price, products, stars, time_of_delivery: timeOfDelivery} = restaurant;
   const card = `
-    <a class="card card-restaurant">
-			<img src="img/pizza-burger/preview.jpg" alt="image" class="card-image"/>
+    <a class="card card-restaurant" data-products="${products}" 
+    data-name = "${name}" 
+    data-stars = "${stars}" 
+    data-price="${price}" 
+    data-kitchen="${kitchen}">
+			<img src="${image}" alt="image" class="card-image"/>
 			<div class="card-text">
 				<div class="card-heading">
-				  <h3 class="card-title">PizzaBurger</h3>
-				  <span class="card-tag tag">45 мин</span>
+				  <h3 class="card-title">${name}</h3>
+				  <span class="card-tag tag">${timeOfDelivery} мин</span>
 			  </div>
 				<div class="card-info">
-				  <div class="rating">4.5</div>
-				  <div class="price">От 700 ₽</div>
-				  <div class="category">Пицца</div>
+				  <div class="rating">${stars}</div>
+				  <div class="price">От ${price} ₽</div>
+				  <div class="category">${kitchen}</div>
 			  </div>
 		  </div>
 		</a>
   `;
 
   cardsRestaurants.insertAdjacentHTML('beforeend', card);
+};
+
+
+const createHeaderGoogs = (name, stars, price, kitchen) => {
+  const restaurantTitle = document.querySelector('.restaurant-title');
+  restaurantTitle.textContent = name;
+  const restaurantRating = document.querySelector('.section-heading .rating');
+  restaurantRating.textContent = stars;
+  const restaurantPrice = document.querySelector('.section-heading .price');
+  restaurantPrice.textContent = `От ${price} ₽`;
+  const restaurantKitchen = document.querySelector('.section-heading .category');
+  restaurantKitchen.textContent = kitchen;
+
 };
 
 /**
@@ -249,26 +292,25 @@ const createCardRestaurantHTML = () => {
  * 4. добавляем родительскую ноду в DOM с помощью метода insertAdjacentElement
  */
 
-const createCardGood = () => {
+const createCardGood = (good) => {
+  const {description, id, image, name, price} = good;
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = `
-						<img src="img/pizza-plus/pizza-vesuvius.jpg" alt="image" class="card-image"/>
+						<img src="${image}" alt="image" class="card-image" data-id="${id}"/>
 						<div class="card-text">
 							<div class="card-heading">
-								<h3 class="card-title card-title-reg">Пицца Везувий</h3>
+								<h3 class="card-title card-title-reg">${name}</h3>
 							</div>
 							<div class="card-info">
-								<div class="ingredients">Соус томатный, сыр «Моцарелла», ветчина, пепперони, перец
-									«Халапенье», соус «Тобаско», томаты.
-								</div>
+								<div class="ingredients">${description}</div>
 							</div>
 							<div class="card-buttons">
 								<button class="button button-primary button-add-cart">
 									<span class="button-card-text">В корзину</span>
 									<span class="button-cart-svg"></span>
 								</button>
-								<strong class="card-price-bold">545 ₽</strong>
+								<strong class="card-price-bold">${price} ₽</strong>
 							</div>
 						</div>
 `;
@@ -285,14 +327,14 @@ const createCardGood = () => {
  * 4. Добавляем в родительский (или начальный) HTML элемент
  */
 
-const createCardGoodJS = () => {
+const createCardGoodJS = (good) => {
   const card = document.createElement('div');
   card.className = 'card';
 
   const image = document.createElement('img');
   image.className = 'card-image';
   image.setAttribute('alt', 'image');
-  image.setAttribute('src', 'img/pizza-plus/pizza-vesuvius.jpg');
+  image.setAttribute('src', good.image);
   card.appendChild(image);
 
   const cardText = document.createElement('div');
@@ -301,7 +343,7 @@ const createCardGoodJS = () => {
   cardHeading.className = 'card-heading';
   const cardTitle = document.createElement('h3');
   cardTitle.className = 'card-title card-title-reg';
-  cardTitle.textContent = 'Пицца Везувий';
+  cardTitle.textContent = good.name;
   cardHeading.appendChild(cardTitle);
   cardText.appendChild(cardHeading);
 
@@ -309,7 +351,7 @@ const createCardGoodJS = () => {
   cardInfo.className = 'card-info';
   const ingredients = document.createElement('div');
   ingredients.className = 'ingredients';
-  ingredients.textContent = 'Соус томатный, сыр «Моцарелла», ветчина, пепперони, перец «Халапенье», соус «Тобаско», томаты.';
+  ingredients.textContent = good.description;
   cardInfo.appendChild(ingredients);
   cardText.appendChild(cardInfo);
 
@@ -328,7 +370,7 @@ const createCardGoodJS = () => {
 
   const cardPriceBold = document.createElement('strong');
   cardPriceBold.className = 'card-price-bold';
-  cardPriceBold.textContent = '545 ₽';
+  cardPriceBold.textContent = `${good.price} ₽`;
 
   cardButtons.appendChild(button);
   cardButtons.appendChild(cardPriceBold);
@@ -357,10 +399,16 @@ const openGoods = (event) => {
     restaurants.classList.add('hide');
     menu.classList.remove('hide');
     cardsMenu.textContent = "";
-    //создаём карточку товара с помощью HTML
-    createCardGood();
-    //создаём карточку товара с помощью JS
-    createCardGoodJS()
+
+    getData(`./db/${restaurant.dataset.products}`).then((data) => {
+      createHeaderGoogs(restaurant.dataset.name, restaurant.dataset.stars, restaurant.dataset.price, restaurant.dataset.kitchen);
+      data.map(dataElem => {
+        //создаём карточку товара с помощью HTML
+        createCardGood(dataElem);
+        //создаём карточку товара с помощью JS
+        //createCardGoodJS(dataElem, restaurant.dataset.restaurant);
+      })
+    });
   }
 };
 
@@ -374,6 +422,7 @@ const goToHome = () => {
   menu.classList.add('hide');
 };
 
+
 //обработчик клика на кнопку "Войти" или "Выйти"
 cartButton.addEventListener('click', toggleModal);
 //обработчик клика на крестик в модальном окне авторизации
@@ -385,10 +434,19 @@ logo.addEventListener('click', goToHome);
 
 //вызываем функцию проверки авторизации
 checkAuth();
-//создаём каррточку ресторана с помощью объекта-вёрстки и "движка"
-createCardRestaurant();
-//cоздаём карточку ресторана с помощью шаблонной строки HTML
-createCardRestaurantHTML();
+
+function init() {
+  getData('./db/partners.json').then((data) => {
+    data.map(dataElem => {
+      //cоздаём карточку ресторана с помощью шаблонной строки HTML
+      createCardRestaurantHTML(dataElem);
+      //создаём каррточку ресторана с помощью объекта-вёрстки и "движка"
+      //createCardRestaurant(dataElem);
+    })
+  });
+}
+
+init();
 
 //Используем библиотеку Swiper
 new Swiper('.swiper-container', {
