@@ -1,6 +1,6 @@
 'use strict';
 
-const cartButton = document.querySelector('#cart-button'),
+const cartButton = document.getElementById('cart-button'),
   modal = document.querySelector('.modal'),
   close = document.querySelector('.close'),
   buttonAuth = document.querySelector('.button-auth'),
@@ -20,10 +20,13 @@ const cartButton = document.querySelector('#cart-button'),
   restaurantTitle = document.querySelector('.restaurant-title'),
   restaurantRating = document.querySelector('.section-heading .rating'),
   restaurantPrice = document.querySelector('.section-heading .price'),
-  restaurantKitchen = document.querySelector('.section-heading .category');
+  restaurantKitchen = document.querySelector('.section-heading .category'),
+  modalBody = document.querySelector('.modal-body'),
+  modalPrice = document.querySelector('.modal-pricetag'),
+  buttonClearCart = document.querySelector('.clear-cart');
 
-
-let login = localStorage.getItem('gloDelivery');
+let cart = JSON.parse(localStorage.getItem('cart'));
+let login = localStorage.getItem('login');
 
 /**
  * @param url
@@ -44,7 +47,7 @@ const getData = async (url) => {
 
 //функиця валидации login
 const valid = function (str) {
-  const nameReg = /^[a-zA-Zа-яА-Я][a-zA-Zа-яА-Я0-9-_.][а-яА-Я]{1,20}$/;
+  const nameReg = /^[a-zA-Zа-яёА-ЯЁ0-9.\s\-]{1,20}$/;
   return nameReg.test(str);
 };
 
@@ -54,6 +57,10 @@ const valid = function (str) {
 
 const toggleModal = (htmlElement) => {
   htmlElement.classList.toggle('is-open');
+};
+
+const handlerToggleModalAuth = () => {
+  toggleModal(modalAuth);
 };
 
 /**
@@ -67,15 +74,18 @@ const authorized = () => {
     buttonAuth.style.display = '';
     userName.style.display = '';
     buttonOut.style.display = '';
+    cartButton.style.display = '';
+
     buttonOut.removeEventListener('click', logOut);
-    localStorage.removeItem('gloDelivery');
+    localStorage.removeItem('login');
     checkAuth();
   };
   //добавляем логин и кнопку "Выйти"
   userName.textContent = login;
   buttonAuth.style.display = 'none';
   userName.style.display = 'inline';
-  buttonOut.style.display = 'block';
+  buttonOut.style.display = 'flex';
+  cartButton.style.display = 'flex';
   //обработчик на кнопку "Выйти"
   buttonOut.addEventListener('click', logOut);
 };
@@ -90,19 +100,18 @@ const notAuthorized = () => {
     event.preventDefault();
     //получаем значение логина без пробелов с начала и конца
     const userName = loginInput.value.trim();
-
     if (userName && valid(loginInput.value)) {
 
       //возвращаем значение по-умолчанию
       loginInput.style.borderColor = "";
       //добавляем значение логина в локальное хранилище и обновляем глобальную перременную логина
-      localStorage.setItem('gloDelivery', userName);
+      localStorage.setItem('login', userName);
       login = userName;
       //закрываем форму
-      toggleModalAuth(modalAuth);
+      toggleModal(modalAuth);
       //удаляем обработчики с закрытой формы
-      buttonAuth.removeEventListener('click', toggleModal.bind(null, modalAuth));
-      closeAuth.removeEventListener('click', toggleModal.bind(null, modalAuth));
+      buttonAuth.removeEventListener('click', handlerToggleModalAuth);
+      closeAuth.removeEventListener('click', handlerToggleModalAuth);
       logInForm.removeEventListener('submit', logIn);
       logInForm.reset();
       //вызываем проверку авторизации
@@ -115,8 +124,8 @@ const notAuthorized = () => {
 
   };
   //обрабочики на кнопки "😊 Войти" (действие описано выше), "Войти", х,
-  buttonAuth.addEventListener('click', toggleModal.bind(null, modalAuth));
-  closeAuth.addEventListener('click', toggleModal.bind(null, modalAuth));
+  buttonAuth.addEventListener('click', handlerToggleModalAuth);
+  closeAuth.addEventListener('click', handlerToggleModalAuth);
   logInForm.addEventListener('submit', logIn);
 };
 
@@ -305,7 +314,7 @@ const createCardGood = (good) => {
 									<span class="button-card-text">В корзину</span>
 									<span class="button-cart-svg"></span>
 								</button>
-								<strong class="card-price-bold">${price} ₽</strong>
+								<strong class="card-price card-price-bold">${price} ₽</strong>
 							</div>
 						</div>
 `);
@@ -325,6 +334,7 @@ const createCardGood = (good) => {
 const createCardGoodJS = (good) => {
   const card = document.createElement('div');
   card.className = 'card';
+  card.setAttribute('id', good.id);
 
   const image = document.createElement('img');
   image.className = 'card-image';
@@ -365,6 +375,7 @@ const createCardGoodJS = (good) => {
 
   const cardPriceBold = document.createElement('strong');
   cardPriceBold.className = 'card-price-bold';
+  cardPriceBold.className = 'card-price';
   cardPriceBold.textContent = `${good.price} ₽`;
 
   cardButtons.appendChild(button);
@@ -478,21 +489,112 @@ const handleSearch = (event) => {
   event.target.value = "";
 };
 
-//обработчик клика на кнопку "Войти" или "Выйти"
-cartButton.addEventListener('click', toggleModal.bind(null, modal));
-//обработчик клика на крестик в модальном окне авторизации
-close.addEventListener('click', toggleModal.bind(null, modal));
-//обработчик клика на карточку ресторана
-cardsRestaurants.addEventListener('click', openGoods);
-//обработчик клика на logo (возврат на страницу выбора ресторана)
-logo.addEventListener('click', goToHome);
-//обаботчик энтера в поиске
-inputSearch.addEventListener('keydown', handleSearch);
 
-//вызываем функцию проверки авторизации
-checkAuth();
+/**
+ * функция добавления товаров в корзину
+ */
+function addToCart(event) {
+  const buttonAddToCart = event.target.closest('.button-add-cart');
+  if (!buttonAddToCart) {
+    return;
+  }
+  const card = event.target.closest('.card');
+  const title = card.querySelector('.card-title-reg').textContent;
+  const cost = card.querySelector('.card-price').textContent;
+  const id = card.getAttribute('id');
+
+  const food = cart.find(function (item) {
+    return item.id === id;
+  });
+
+  if (food) {
+    food.count++;
+  } else {
+    cart.push({id, title, cost, count: 1});
+  }
+  localStorage.setItem('cart', JSON.stringify(cart));
+}
+
+//создаём вёрстку элементо в корзине
+const renderCart = () => {
+  //очистили корзину
+  modalBody.textContent = "";
+  //для каждого элемента в корзине создаём вёрстку:
+  cart.forEach(({id, title, cost, count}) => {
+    const itemCard = `
+        <div class="food-row">
+					<span class="food-name">${title}</span>
+					<strong class="food-price">${cost}</strong>
+					<div class="food-counter">
+						<button class="counter-button counter-minus " data-id="${id}">-</button>
+						<span class="counter">${count}</span>
+						<button class="counter-button counter-plus " data-id="${id}">+</button>
+					</div>
+				</div>
+    `;
+    //добавляем в DOM
+    modalBody.insertAdjacentHTML('afterbegin', itemCard);
+  });
+  //суммируем
+  const totalPrice = cart.reduce((sum, item) => {
+    return sum + parseFloat(item.cost) * item.count;
+  }, 0);
+  modalPrice.textContent = `${totalPrice} P`;
+};
+
+const changeCount = (event) => {
+  if (!event.target.classList.contains('counter-button')) {
+    return;
+  }
+  const food = cart.find(function (item) {
+    return item.id === event.target.dataset.id
+  });
+
+  if (event.target.classList.contains('counter-minus')) {
+    food.count--;
+    if (food.count === 0) {
+      cart.splice(cart.indexOf(food), 1);
+    }
+  }
+  if (event.target.classList.contains('counter-plus')) {
+    food.count++;
+  }
+  localStorage.setItem('cart', JSON.stringify(cart));
+  renderCart();
+};
 
 function init() {
+  if (!cart) {
+    localStorage.setItem('cart', JSON.stringify([]));
+    cart = [];
+  }
+  //обработчик клика на корзину
+  cartButton.addEventListener('click', () => {
+    renderCart();
+    toggleModal(modal);
+  });
+  //обработчик клика на крестик в модальном окне авторизации
+  close.addEventListener('click', toggleModal.bind(null, modal));
+  //обработчик клика на карточку ресторана
+  cardsRestaurants.addEventListener('click', openGoods);
+  //обработчик клика на logo (возврат на страницу выбора ресторана)
+  logo.addEventListener('click', goToHome);
+  //обаботчик энтера в поиске
+  inputSearch.addEventListener('keydown', handleSearch);
+  //обработчик клика на кнопку "добавить в корзину"
+  cardsMenu.addEventListener('click', addToCart);
+  //обработчик клика изменения количество товаров по позиции в корзине
+  modalBody.addEventListener('click', changeCount);
+  //обработчик клика - кнопка отмена очистки корзины
+  buttonClearCart.addEventListener('click', () => {
+    cart.length = 0;
+    localStorage.removeItem('cart');
+    renderCart();
+  });
+
+  //вызываем функцию проверки авторизации
+  checkAuth();
+
   getData('./db/partners.json').then((data) => {
     data.map(dataElem => {
       //cоздаём карточку ресторана с помощью шаблонной строки HTML
